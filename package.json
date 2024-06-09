@@ -6,7 +6,8 @@
   "scripts": {
     "start": "ts-node src/index.ts",
     "dev": "nodemon --exec ts-node src/index.ts",
-    "commit": "git add . && cz && git push"
+    "commit": "git add . && cz && git push",
+    "check": "git fetch && git pull && npm i"
   },
   "author": "Estecore",
   "license": "ISC",
