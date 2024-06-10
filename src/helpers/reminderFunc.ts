@@ -3,42 +3,74 @@ import TelegramBot, {
   CallbackQuery,
 } from "node-telegram-bot-api";
 
-let intervalId: NodeJS.Timeout | undefined;
+let eyeIntervalId: NodeJS.Timeout | undefined;
+let exerciseIntervalId: NodeJS.Timeout | undefined;
 
-const handleReminderFunction = (bot: TelegramBot, chatId: number) => {
+interface ReminderProps {
+  bot: TelegramBot;
+  chatId: number;
+  reminderType: "eyes" | "exercises";
+}
+
+const handleReminderFunction = ({
+  bot,
+  chatId,
+  reminderType,
+}: ReminderProps) => {
   const keyboard: InlineKeyboardMarkup = {
     inline_keyboard: [
-      [{ text: "Удалить напоминание", callback_data: "delete_reminder" }],
+      [
+        {
+          text: "Удалить напоминание",
+          callback_data: `delete_${reminderType}_reminder`,
+        },
+      ],
     ],
   };
+
+  const reminderMessage: Record<"eyes" | "exercise", string> = {
+    eyes: "*Время для перерыва!* \n\nПроведите несколько минут на отдых и разминку глаз.",
+    exercise:
+      "*Время для упражнений!* \n\nСделайте несколько упражнений для поддержания здоровья.",
+  };
+
+  const reminderText: string =
+    reminderType === "eyes" ? reminderMessage.eyes : reminderMessage.exercise;
+
   bot.sendMessage(
     chatId,
-    `Вы выбрали функцию "Напоминания". \n\nВведите интервал напоминаний в *минутах(число)*:`,
+    `Вы выбрали функцию "${
+      reminderType === "eyes" ? "Глаза" : "Упражнения"
+    }". \n\nВведите интервал напоминаний в *минутах(число)*:`,
     {
       parse_mode: "Markdown",
       reply_markup: keyboard,
     }
   );
 
-  bot.on("callback_query", (callbackQuery: CallbackQuery) => {
-    if (!callbackQuery.message) {
-      return;
-    }
-    const data = callbackQuery.data;
-    const chatId = callbackQuery.message.chat.id;
+  const onDeleteCallbackQuery = (callbackQyery: CallbackQuery) => {
+    if (!callbackQyery.message) return;
+    const data = callbackQyery.data;
+    const chatId = callbackQyery.message.chat.id;
 
-    switch (data) {
-      case "delete_reminder": {
-        if (intervalId) {
-          clearInterval(intervalId);
-          bot.sendMessage(chatId, "Напоминание удалено.");
-        }
-        break;
+    if (data === `delete_${reminderType}_reminder`) {
+      if (reminderType === "eyes" && eyeIntervalId) {
+        clearInterval(eyeIntervalId);
+        eyeIntervalId = undefined;
+        bot.sendMessage(chatId, "Напоминание о глазах удалено.");
+      } else if (reminderType === "exercises" && exerciseIntervalId) {
+        clearInterval(exerciseIntervalId);
+        exerciseIntervalId = undefined;
+        bot.sendMessage(chatId, "Напоминание об упражнениях удалено.");
       }
+      bot.removeListener("callback_query", onDeleteCallbackQuery);
+      bot.removeAllListeners("message");
     }
-  });
+  };
 
-  bot.onText(/.*/, (msg) => {
+  bot.on("callback_query", onDeleteCallbackQuery);
+
+  bot.on("message", (msg) => {
     const chatId = msg.chat.id;
 
     if (!msg.text) {
@@ -60,18 +92,27 @@ const handleReminderFunction = (bot: TelegramBot, chatId: number) => {
       `Интервал напоминаний успешно установлен на ${interval} минут.`
     );
 
-    if (intervalId) {
-      clearInterval(intervalId);
-    }
-    intervalId = setInterval(() => {
-      bot.sendMessage(
-        chatId,
-        `*Время для перерыва!* \n\nПроведите несколько минут на отдых и разминку глаз.`,
-        {
+    bot.removeAllListeners("message");
+
+    if (reminderType === "eyes") {
+      if (eyeIntervalId) {
+        clearInterval(eyeIntervalId);
+      }
+      eyeIntervalId = setInterval(() => {
+        bot.sendMessage(chatId, reminderText, {
           parse_mode: "Markdown",
-        }
-      );
-    }, interval * 1000);
+        });
+      }, interval * 1000);
+    } else if (reminderType === "exercises") {
+      if (exerciseIntervalId) {
+        clearInterval(exerciseIntervalId);
+      }
+      exerciseIntervalId = setInterval(() => {
+        bot.sendMessage(chatId, reminderText, {
+          parse_mode: "Markdown",
+        });
+      }, interval * 1000);
+    }
   });
 };
 
