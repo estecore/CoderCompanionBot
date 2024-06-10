@@ -17,7 +17,7 @@ bot.onText(/\/start|start|старт/i, (msg) => {
   const keyboard: InlineKeyboardMarkup = {
     inline_keyboard: [
       [
-        { text: "Напоминания", callback_data: "reminders" },
+        { text: "Глаза", callback_data: "eyes" },
         { text: "Упражнения", callback_data: "exercises" },
       ],
       [{ text: "Остаток дней жизни", callback_data: "lifecount" }],
@@ -26,13 +26,7 @@ bot.onText(/\/start|start|старт/i, (msg) => {
 
   bot.sendMessage(
     msg.chat.id,
-    `
-*Привет!* Я ваш *Бот-помощник*. 
-Я буду помогать вам отслеживать перерывы для глаз, делать физические упражнения 
-и даже отсчитывать оставшиеся дни вашей жизни.
-
-Пожалуйста, выберите интересующую вас функцию:
-    `,
+    `*Привет!* Я ваш *Бот-помощник*. \n\nЯ буду помогать вам отслеживать *перерывы для глаз*, делать *физические упражнения* и даже отсчитывать *оставшиеся дни вашей жизни*. \n\nПожалуйста, выберите интересующую вас функцию:`,
     {
       parse_mode: "Markdown",
       reply_markup: keyboard,
@@ -49,8 +43,12 @@ bot.on("callback_query", (callbackQuery) => {
   const chatId = callbackQuery.message.chat.id;
 
   switch (data) {
-    case "reminders": {
-      handleReminderFunction(bot, chatId);
+    case "eyes": {
+      handleReminderFunction({ bot, chatId, reminderType: "eyes" });
+      break;
+    }
+    case "exercises": {
+      handleReminderFunction({ bot, chatId, reminderType: "exercises" });
       break;
     }
   }
