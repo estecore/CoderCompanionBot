@@ -1,7 +1,4 @@
-import TelegramBot, {
-  InlineKeyboardMarkup,
-  CallbackQuery,
-} from "node-telegram-bot-api";
+import TelegramBot, { ReplyKeyboardMarkup } from "node-telegram-bot-api";
 import * as dotenv from "dotenv";
 
 import handleReminderFunction from "./helpers/reminderFunc";
@@ -18,14 +15,13 @@ if (!token) {
 const bot = new TelegramBot(token, { polling: true });
 
 bot.onText(/\/start|start|старт/i, (msg) => {
-  const keyboard: InlineKeyboardMarkup = {
-    inline_keyboard: [
-      [
-        { text: "Глаза", callback_data: "eyes" },
-        { text: "Упражнения", callback_data: "exercises" },
-      ],
-      [{ text: "Остаток дней жизни", callback_data: "lifecount" }],
+  const keyboard: ReplyKeyboardMarkup = {
+    keyboard: [
+      [{ text: "Глаза" }, { text: "Упражнения" }],
+      [{ text: "Остаток дней жизни" }],
     ],
+    resize_keyboard: true,
+    one_time_keyboard: true,
   };
 
   bot.sendMessage(
@@ -38,28 +34,20 @@ bot.onText(/\/start|start|старт/i, (msg) => {
   );
 });
 
-bot.on("callback_query", (callbackQuery: CallbackQuery) => {
-  if (!callbackQuery.message) {
-    return;
-  }
+bot.onText(/Глаза|eyes/i, (msg) => {
+  handleReminderFunction({ bot, chatId: msg.chat.id, reminderType: "eyes" });
+});
 
-  const data = callbackQuery.data;
-  const chatId = callbackQuery.message.chat.id;
+bot.onText(/Упражнения|exercises/i, (msg) => {
+  handleReminderFunction({
+    bot,
+    chatId: msg.chat.id,
+    reminderType: "exercises",
+  });
+});
 
-  switch (data) {
-    case "eyes": {
-      handleReminderFunction({ bot, chatId, reminderType: "eyes" });
-      break;
-    }
-    case "exercises": {
-      handleReminderFunction({ bot, chatId, reminderType: "exercises" });
-      break;
-    }
-    case "lifecount": {
-      handleLifeCounter({ bot, chatId });
-      break;
-    }
-  }
+bot.onText(/Остаток дней жизни|lifecount/i, (msg) => {
+  handleLifeCounter({ bot, chatId: msg.chat.id });
 });
 
 console.log("Bot is running!");
