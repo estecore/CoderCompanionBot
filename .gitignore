@@ -101,3 +101,6 @@ ehthumbs.db
 
 # npm package lock file
 package-lock.json
+
+# Ignore user data file
+userData.json
