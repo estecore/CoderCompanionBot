@@ -1,7 +1,11 @@
-import TelegramBot, { InlineKeyboardMarkup } from "node-telegram-bot-api";
+import TelegramBot, {
+  InlineKeyboardMarkup,
+  CallbackQuery,
+} from "node-telegram-bot-api";
 import * as dotenv from "dotenv";
 
 import handleReminderFunction from "./helpers/reminderFunc";
+import handleLifeCounter from "./helpers/lifeCounter";
 
 dotenv.config();
 
@@ -34,7 +38,7 @@ bot.onText(/\/start|start|старт/i, (msg) => {
   );
 });
 
-bot.on("callback_query", (callbackQuery) => {
+bot.on("callback_query", (callbackQuery: CallbackQuery) => {
   if (!callbackQuery.message) {
     return;
   }
@@ -49,6 +53,10 @@ bot.on("callback_query", (callbackQuery) => {
     }
     case "exercises": {
       handleReminderFunction({ bot, chatId, reminderType: "exercises" });
+      break;
+    }
+    case "lifecount": {
+      handleLifeCounter({ bot, chatId });
       break;
     }
   }
