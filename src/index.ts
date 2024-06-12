@@ -1,4 +1,7 @@
-import TelegramBot, { InlineKeyboardMarkup } from "node-telegram-bot-api";
+import TelegramBot, {
+  InlineKeyboardMarkup,
+  CallbackQuery,
+} from "node-telegram-bot-api";
 import * as dotenv from "dotenv";
 
 import handleReminderFunction from "./helpers/reminderFunc";
@@ -35,7 +38,7 @@ bot.onText(/\/start|start|старт/i, (msg) => {
   );
 });
 
-bot.on("callback_query", (callbackQuery) => {
+bot.on("callback_query", (callbackQuery: CallbackQuery) => {
   if (!callbackQuery.message) {
     return;
   }

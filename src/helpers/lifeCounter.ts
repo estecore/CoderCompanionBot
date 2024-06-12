@@ -1,4 +1,7 @@
-import TelegramBot from "node-telegram-bot-api";
+import TelegramBot, {
+  InlineKeyboardMarkup,
+  CallbackQuery,
+} from "node-telegram-bot-api";
 import fs from "fs";
 import path from "path";
 
@@ -6,7 +9,7 @@ const LIFE_EXPECTANCY = 75;
 
 interface UserData {
   [chatId: number]: {
-    birthdate: string;
+    birthdate?: string;
   };
 }
 
@@ -27,7 +30,6 @@ const saveUserData = (data: UserData) => {
 const calculateRemainingDays = (birthdate: string): number => {
   const birth = new Date(birthdate);
   const today = new Date();
-  const age = today.getFullYear() - birth.getFullYear();
   const lifeExpectancyDate = new Date(
     birth.setFullYear(birth.getFullYear() + LIFE_EXPECTANCY)
   );
@@ -53,15 +55,42 @@ const handleLifeCounter = ({
   const userData = loadUserData();
 
   if (userData[chatId] && userData[chatId].birthdate) {
-    const remainingDays = calculateRemainingDays(userData[chatId].birthdate);
-    bot.sendMessage(
-      chatId,
-      `У вас осталось примерно ${remainingDays} дней жизни. \n\nНе упускайте ни единой минуты жизни!`,
-      {
-        parse_mode: "Markdown",
-      }
-    );
-    return;
+    const birthdate = userData[chatId].birthdate;
+    if (birthdate) {
+      const remainingDays = calculateRemainingDays(birthdate);
+      const keyboard: InlineKeyboardMarkup = {
+        inline_keyboard: [
+          [
+            {
+              text: "Удалить дату рождения",
+              callback_data: "delete_birthdate",
+            },
+          ],
+        ],
+      };
+
+      bot.sendMessage(
+        chatId,
+        `У вас осталось примерно ${remainingDays} дней жизни. \n\nНе упускайте ни единой минуты жизни!`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: keyboard,
+        }
+      );
+
+      bot.on("callback_query", (callbackQuery: CallbackQuery) => {
+        if (!callbackQuery.message) {
+          return;
+        }
+        if (callbackQuery.data === "delete_birthdate") {
+          delete userData[chatId].birthdate;
+          saveUserData(userData);
+          bot.sendMessage(chatId, "Ваша дата рождения была удалена из данных.");
+        }
+      });
+
+      return;
+    }
   }
 
   const askForBirthDate = () => {
@@ -83,11 +112,37 @@ const handleLifeCounter = ({
       saveUserData(userData);
 
       const remainingDays = calculateRemainingDays(birthdate);
+      const keyboard: InlineKeyboardMarkup = {
+        inline_keyboard: [
+          [
+            {
+              text: "Удалить дату рождения",
+              callback_data: "delete_birthdate",
+            },
+          ],
+        ],
+      };
+
       bot.sendMessage(
         chatId,
-        `У вас осталось примерно ${remainingDays} дней жизни. \n\nНе упускайте ни единой минуты жизни!`
+        `У вас осталось примерно ${remainingDays} дней жизни. \n\nНе упускайте ни единой минуты жизни!`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: keyboard,
+        }
       );
       bot.removeListener("message", messageListener);
+
+      bot.on("callback_query", (callbackQuery: CallbackQuery) => {
+        if (!callbackQuery.message) {
+          return;
+        }
+        if (callbackQuery.data === "delete_birthdate") {
+          delete userData[chatId].birthdate;
+          saveUserData(userData);
+          bot.sendMessage(chatId, "Ваша дата рождения была удалена из данных.");
+        }
+      });
     };
 
     bot.on("message", messageListener);
