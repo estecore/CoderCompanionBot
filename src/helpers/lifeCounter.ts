@@ -14,6 +14,7 @@ interface UserData {
 }
 
 const userDataPath = path.join(__dirname, "userData.json");
+let reminderIntervals: { [chatId: number]: NodeJS.Timeout } = {};
 
 const loadUserData = (): UserData => {
   if (fs.existsSync(userDataPath)) {
@@ -43,6 +44,28 @@ const isValidDate = (date: string): boolean => {
 
   const parsedDate = new Date(date);
   return parsedDate instanceof Date && !isNaN(parsedDate.getTime());
+};
+
+const setDailyReminder = (
+  bot: TelegramBot,
+  chatId: number,
+  birthdate: string
+) => {
+  const sendReminder = () => {
+    const remainingDays = calculateRemainingDays(birthdate);
+    bot.sendMessage(
+      chatId,
+      `Напоминание: у вас осталось примерно ${remainingDays} дней жизни. \n\nНе упускайте ни единой минуты жизни!`,
+      { parse_mode: "Markdown" }
+    );
+  };
+
+  // sendReminder();
+
+  if (reminderIntervals[chatId]) {
+    clearInterval(reminderIntervals[chatId]);
+  }
+  reminderIntervals[chatId] = setInterval(sendReminder, 5000);
 };
 
 const handleLifeCounter = ({
@@ -78,6 +101,8 @@ const handleLifeCounter = ({
         }
       );
 
+      setDailyReminder(bot, chatId, birthdate);
+
       bot.on("callback_query", (callbackQuery: CallbackQuery) => {
         if (!callbackQuery.message) {
           return;
@@ -86,6 +111,8 @@ const handleLifeCounter = ({
           delete userData[chatId].birthdate;
           saveUserData(userData);
           bot.sendMessage(chatId, "Ваша дата рождения была удалена из данных.");
+          clearInterval(reminderIntervals[chatId]);
+          delete reminderIntervals[chatId];
         }
       });
 
@@ -133,6 +160,8 @@ const handleLifeCounter = ({
       );
       bot.removeListener("message", messageListener);
 
+      setDailyReminder(bot, chatId, birthdate);
+
       bot.on("callback_query", (callbackQuery: CallbackQuery) => {
         if (!callbackQuery.message) {
           return;
@@ -141,6 +170,8 @@ const handleLifeCounter = ({
           delete userData[chatId].birthdate;
           saveUserData(userData);
           bot.sendMessage(chatId, "Ваша дата рождения была удалена из данных.");
+          clearInterval(reminderIntervals[chatId]);
+          delete reminderIntervals[chatId];
         }
       });
     };
