@@ -25,6 +25,12 @@ const handleReminderFunction = ({
           callback_data: `delete_${reminderType}_reminder`,
         },
       ],
+      [
+        {
+          text: "Отмена",
+          callback_data: `cancel`,
+        },
+      ],
     ],
   };
 
@@ -48,10 +54,10 @@ const handleReminderFunction = ({
     }
   );
 
-  const onDeleteCallbackQuery = (callbackQyery: CallbackQuery) => {
-    if (!callbackQyery.message) return;
-    const data = callbackQyery.data;
-    const chatId = callbackQyery.message.chat.id;
+  const onDeleteCallbackQuery = (callbackQuery: CallbackQuery) => {
+    if (!callbackQuery.message) return;
+    const data = callbackQuery.data;
+    const chatId = callbackQuery.message.chat.id;
 
     if (data === `delete_${reminderType}_reminder`) {
       if (reminderType === "eyes" && eyeIntervalId) {
@@ -65,12 +71,21 @@ const handleReminderFunction = ({
       }
       bot.removeListener("callback_query", onDeleteCallbackQuery);
       bot.removeAllListeners("message");
+    } else if (data === `cancel`) {
+      bot.removeListener("callback_query", onDeleteCallbackQuery);
+      bot.removeAllListeners("message");
+      bot.sendMessage(
+        chatId,
+        `Команда ${
+          reminderType === "eyes" ? `"Глаза"` : `"Упражнения"`
+        } отменена.`
+      );
     }
   };
 
   bot.on("callback_query", onDeleteCallbackQuery);
 
-  bot.on("message", (msg) => {
+  const messageListener = (msg: TelegramBot.Message) => {
     const chatId = msg.chat.id;
 
     if (!msg.text) {
@@ -92,7 +107,7 @@ const handleReminderFunction = ({
       `Интервал напоминаний успешно установлен на ${interval} минут.`
     );
 
-    bot.removeAllListeners("message");
+    bot.removeListener("message", messageListener);
 
     if (reminderType === "eyes") {
       if (eyeIntervalId) {
@@ -102,7 +117,7 @@ const handleReminderFunction = ({
         bot.sendMessage(chatId, reminderText, {
           parse_mode: "Markdown",
         });
-      }, interval * 1000);
+      }, interval * 60 * 1000);
     } else if (reminderType === "exercises") {
       if (exerciseIntervalId) {
         clearInterval(exerciseIntervalId);
@@ -111,9 +126,11 @@ const handleReminderFunction = ({
         bot.sendMessage(chatId, reminderText, {
           parse_mode: "Markdown",
         });
-      }, interval * 1000);
+      }, interval * 60 * 1000);
     }
-  });
+  };
+
+  bot.on("message", messageListener);
 };
 
 export default handleReminderFunction;
