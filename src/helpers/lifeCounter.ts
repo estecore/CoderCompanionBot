@@ -60,12 +60,10 @@ const setDailyReminder = (
     );
   };
 
-  // sendReminder();
-
   if (reminderIntervals[chatId]) {
     clearInterval(reminderIntervals[chatId]);
   }
-  reminderIntervals[chatId] = setInterval(sendReminder, 5000);
+  reminderIntervals[chatId] = setInterval(sendReminder, 1000 * 60 * 60 * 23);
 };
 
 const handleLifeCounter = ({
@@ -81,6 +79,7 @@ const handleLifeCounter = ({
     const birthdate = userData[chatId].birthdate;
     if (birthdate) {
       const remainingDays = calculateRemainingDays(birthdate);
+
       const keyboard: InlineKeyboardMarkup = {
         inline_keyboard: [
           [
@@ -113,6 +112,14 @@ const handleLifeCounter = ({
           bot.sendMessage(chatId, "Ваша дата рождения была удалена из данных.");
           clearInterval(reminderIntervals[chatId]);
           delete reminderIntervals[chatId];
+
+          bot.editMessageReplyMarkup(
+            { inline_keyboard: [] },
+            {
+              chat_id: callbackQuery.message.chat.id,
+              message_id: callbackQuery.message.message_id,
+            }
+          );
         }
       });
 
@@ -120,66 +127,98 @@ const handleLifeCounter = ({
     }
   }
 
-  const askForBirthDate = () => {
-    bot.sendMessage(chatId, "Введите вашу дату рождения в формате ГГГГ-ММ-ДД:");
-
-    const messageListener = (msg: TelegramBot.Message) => {
-      if (msg.chat.id !== chatId) return;
-      const birthdate = msg.text?.trim();
-
-      if (!birthdate || !isValidDate(birthdate)) {
-        bot.sendMessage(
-          chatId,
-          "Пожалуйста, введите дату рождения в правильном формате (ГГГГ-ММ-ДД)."
-        );
-        return;
-      }
-
-      userData[chatId] = { birthdate };
-      saveUserData(userData);
-
-      const remainingDays = calculateRemainingDays(birthdate);
-      const keyboard: InlineKeyboardMarkup = {
-        inline_keyboard: [
-          [
-            {
-              text: "Удалить дату рождения",
-              callback_data: "delete_birthdate",
-            },
-          ],
-        ],
-      };
-
-      bot.sendMessage(
-        chatId,
-        `У вас осталось примерно ${remainingDays} дней жизни. \n\nНе упускайте ни единой минуты жизни!`,
+  const keyboard: InlineKeyboardMarkup = {
+    inline_keyboard: [
+      [
         {
-          parse_mode: "Markdown",
-          reply_markup: keyboard,
-        }
-      );
-      bot.removeListener("message", messageListener);
-
-      setDailyReminder(bot, chatId, birthdate);
-
-      bot.on("callback_query", (callbackQuery: CallbackQuery) => {
-        if (!callbackQuery.message) {
-          return;
-        }
-        if (callbackQuery.data === "delete_birthdate") {
-          delete userData[chatId].birthdate;
-          saveUserData(userData);
-          bot.sendMessage(chatId, "Ваша дата рождения была удалена из данных.");
-          clearInterval(reminderIntervals[chatId]);
-          delete reminderIntervals[chatId];
-        }
-      });
-    };
-
-    bot.on("message", messageListener);
+          text: "Отмена",
+          callback_data: "cancel_life_counter",
+        },
+      ],
+    ],
   };
 
-  askForBirthDate();
+  bot.sendMessage(
+    chatId,
+    "Для подсчёта оставшихся дней жизни введите вашу дату рождения в формате ГГГГ-ММ-ДД:",
+    {
+      reply_markup: keyboard,
+    }
+  );
+
+  bot.on("callback_query", (callbackQuery: CallbackQuery) => {
+    if (!callbackQuery.message) {
+      return;
+    }
+    if (callbackQuery.data === "cancel_life_counter") {
+      bot.sendMessage(chatId, "Команда 'Остаток дней жизни' отменена.");
+      bot.removeAllListeners("message");
+      bot.removeAllListeners("callback_query");
+    }
+  });
+
+  const messageListener = (msg: TelegramBot.Message) => {
+    if (msg.chat.id !== chatId) return;
+    const birthdate = msg.text?.trim();
+
+    if (!birthdate || !isValidDate(birthdate)) {
+      bot.sendMessage(
+        chatId,
+        "Пожалуйста, введите дату рождения в правильном формате (ГГГГ-ММ-ДД)."
+      );
+      return;
+    }
+
+    userData[chatId] = { birthdate };
+    saveUserData(userData);
+
+    const remainingDays = calculateRemainingDays(birthdate);
+    const keyboard: InlineKeyboardMarkup = {
+      inline_keyboard: [
+        [
+          {
+            text: "Удалить дату рождения",
+            callback_data: "delete_birthdate",
+          },
+        ],
+      ],
+    };
+
+    bot.sendMessage(
+      chatId,
+      `У вас осталось примерно ${remainingDays} дней жизни. \n\nНе упускайте ни единой минуты жизни!`,
+      {
+        parse_mode: "Markdown",
+        reply_markup: keyboard,
+      }
+    );
+    bot.removeListener("message", messageListener);
+
+    setDailyReminder(bot, chatId, birthdate);
+
+    bot.on("callback_query", (callbackQuery: CallbackQuery) => {
+      if (!callbackQuery.message) {
+        return;
+      }
+      if (callbackQuery.data === "delete_birthdate") {
+        delete userData[chatId].birthdate;
+        saveUserData(userData);
+        bot.sendMessage(chatId, "Ваша дата рождения была удалена из данных.");
+        clearInterval(reminderIntervals[chatId]);
+        delete reminderIntervals[chatId];
+
+        bot.editMessageReplyMarkup(
+          { inline_keyboard: [] },
+          {
+            chat_id: callbackQuery.message.chat.id,
+            message_id: callbackQuery.message.message_id,
+          }
+        );
+      }
+    });
+  };
+
+  bot.on("message", messageListener);
 };
 
 export default handleLifeCounter;
