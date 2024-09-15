@@ -3,10 +3,14 @@
     "target": "es5",
     "module": "commonjs",
     "strict": true,
+    "lib": ["es6"],
+    "allowJs": true,
+    "outDir": "build",
+    "rootDir": "./api",
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "resolveJsonModule": true,
+    "typeRoots": ["./node_modules/@types", "./api/types"]
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": ["api/**/*"],
+  "exclude": ["node_modules", "**/*.test.ts"]
 }
