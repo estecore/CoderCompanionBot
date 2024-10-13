@@ -1,8 +1,8 @@
 import TelegramBot, { ReplyKeyboardMarkup } from "node-telegram-bot-api";
+
 import * as dotenv from "dotenv";
 
-import handleReminderFunction from "./helpers/reminderFunc";
-import handleLifeCounter from "./helpers/lifeCounter";
+import { handleLifeCounter, handleReminderFunction } from "./helpers";
 
 dotenv.config();
 
