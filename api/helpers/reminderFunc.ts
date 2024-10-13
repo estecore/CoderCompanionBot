@@ -12,7 +12,7 @@ interface ReminderProps {
   reminderType: "eyes" | "exercises";
 }
 
-const handleReminderFunction = ({
+export const handleReminderFunction = ({
   bot,
   chatId,
   reminderType,
@@ -132,5 +132,3 @@ const handleReminderFunction = ({
 
   bot.on("message", messageListener);
 };
-
-export default handleReminderFunction;
