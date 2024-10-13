@@ -66,7 +66,7 @@ const setDailyReminder = (
   reminderIntervals[chatId] = setInterval(sendReminder, 1000 * 60 * 60 * 23);
 };
 
-const handleLifeCounter = ({
+export const handleLifeCounter = ({
   bot,
   chatId,
 }: {
@@ -220,5 +220,3 @@ const handleLifeCounter = ({
 
   bot.on("message", messageListener);
 };
-
-export default handleLifeCounter;
